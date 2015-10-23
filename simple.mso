@@ -1,0 +1,150 @@
+/*****************************************/
+/* Petersons algorithm A simple solution */
+/*****************************************/
+
+/*
+ 	Description :
+ 		P1 and P2, 2 process
+ 		Q1 & Q2, 2 shared booleans 
+ 		TURN, shared value (1 or 2). Depends on numbers of Process
+*/
+
+/*	
+	Initial system state 
+ 	- Q1 :: 
+ 	- Q2 ::
+ 	- TURN ::
+ 	- P1 P2 :: start code excution   
+*/
+
+
+/********************************************************/
+/* Subsystem  	: Shared 		      		             */
+/* States       : turn1 or turn2			            */
+/* Transitions  : is / to [1 or 2]       				*/
+/********************************************************/
+
+shared=[turn1,turn2] {
+	etat=2;
+	init=0,1;
+	0=turn1;
+	1=turn2;
+
+	0->0 [isTurn1, toTurn1];
+	1->1 [isTurn2, toTurn2];
+
+	1->0 [toTurn1];
+	0->1 [toTurn2];
+};;
+
+/********************************************************/
+/* Subsystem  	: Q 		      		             	*/
+/* States       : TRUE or FALSE			                */
+/* Transitions  : is / to [1 or 2]       				*/
+/********************************************************/
+
+boolean=[TRUE,FALSE] {
+	etat=2;
+	init=0;
+	0=FALSE;
+	1=TRUE;
+
+	0->0 [isFalse, toFalse];
+	1->1 [isTrue, toTrue];
+
+	0->1 [toTrue];
+	1->0 [toFalse];
+
+};;
+
+/****************************************************************************************/
+/* Subsystem  	: Process 		      		          								    */
+/* States       : start (ex: q1 <- TRUE, start2 (ex: t <- turn2, wait, critical or  end */
+/* Transitions  : toStart,toStart2,toWait,toCritical,toEnd       				        */
+/****************************************************************************************/
+
+process=[start,start2,wait,critical,end]{
+	etat=5;
+	init=0;
+
+	0=start;
+	1=start2;
+	2=wait;
+	3=critical;
+	4=end;
+
+	3->0 [toStart];
+	0->1 [toStart2];
+	1->2 [toWait];
+	2->3 [toCritical];
+	0->4 [toEnd];
+};;
+
+/**********************************************************/
+/* System  	  : systeme 		      		           	  */
+/* Processes  : P1 and P2		                          */
+/* Protection : Q1 for P1 and Q2 for P2 and TURN for both */ 				 
+/**********************************************************/
+
+
+systeme = <process P1,boolean Q1,process P2,boolean Q2,shared TURN> {
+	<toEnd,_,_,_,_> -> p1;
+	<_,_,toEnd,_,_> -> p2;
+
+	<toStart2,toTrue,_,_,_> -> p1;
+	<_,_,toStart2,toTrue,_> -> p2;
+	
+	<toWait,_,_,_,toTurn1> -> p1;
+	<_,_,toWait,_,toTurn2> -> p2;
+	
+	<toCritical,_,_,isFalse,_> -> p1;
+	<toCritical,_,_,_,isTurn2> -> p1;
+	
+	<_,isFalse,toCritical,_,_> -> p2;
+	<_,_,toCritical,_,isTurn1> -> p2;
+	
+	<toStart,toFalse,_,_,_> -> p1;
+	<_,_,toStart,toFalse,_> -> p2;
+};;
+
+systeme += EtatBloquant <- !EX(true) && !(P1.end && P2.end);;
+systeme += EtatCriticalMutual <- P1.critical && P2.critical;;
+
+todot simpleSysteme.dot systeme;;
+
+simpleReduit = systeme -> EtatBloquant;;
+todot simpleReduit.dot simpleReduit;;
+
+simpleCritical = systeme -> EtatCriticalMutual;;
+todot simpleCritical.dot simpleCritical;;
+
+systemeInverse = <process P1,boolean Q1,process P2,boolean Q2,shared TURN> {
+	<toEnd,_,_,_,_> -> p1;
+	<_,_,toEnd,_,_> -> p2;
+
+	<toStart2,toTrue,_,_,_> -> p1;
+	<_,_,toStart2,toTrue,_> -> p2;
+	
+	<toWait,_,_,_,toTurn1> -> p1;
+	<_,_,toWait,_,toTurn2> -> p2;
+	
+	<toCritical,_,_,isFalse,_> -> p1;
+	<toCritical,_,_,_,isTurn2> -> p1;
+	
+	<_,isFalse,toCritical,_,_> -> p2;
+	<_,_,toCritical,_,isTurn1> -> p2;
+	
+	<toStart,toFalse,_,_,_> -> p1;
+	<_,_,toStart,toFalse,_> -> p2;
+};;
+
+systemeInverse += EtatBloquant <- !EX(true) && !(P1.end && P2.end);;
+systemeInverse += EtatCriticalMutual <- P1.critical && P2.critical;;
+
+todot simplesystemeInverse.dot systemeInverse;;
+
+simpleReduit = systemeInverse -> EtatBloquant;;
+todot simpleReduit.dot simpleReduit;;
+
+simpleCritical = systemeInverse -> EtatCriticalMutual;;
+todot simpleCritical.dot simpleCritical;;
