@@ -6,14 +6,14 @@
 /*
  	Description :
  		P1 and P2, 2 process
- 		Q1 & Q2, 2 shared values 
+ 		Q1 & Q2, 2 shared values
 */
 
-/*	
-	Initial system state 
- 	- Q1 :: 
+/*
+	Initial system state
+ 	- Q1 ::
  	- Q2 ::
- 	- P1 P2 :: start code excution   
+ 	- P1 P2 :: start code excution
 */
 
 
@@ -23,63 +23,77 @@
 /* Transitions  : move and loop        					*/
 /********************************************************/
 
-process=[critical,wait,end]
+process=[start,wait,critical,end]
 {
 	etat=4;
 	init=0;
 	2=critical;
 	1=wait;
-	3=end;					
-	0->1[mvturn];			// change TURN value
-	1->2[test]; 			// test and wait 	
-	2->0;					// enter in critical code section
-	2->3[stop];				// stop this code section
+	3=end;
+	0 = start;
+
+	0->1 [toWait];
+	1->2 [toCritical];
+	2->0 [toStart];
+	0->3 [toEnd];
 };;
 
-todot process.dot process;;
 
-/************************************************/
-/* Subsystem  	: Shared 	                    */
-/* States       : one::two						*/
-/* Transitions  : change or not the TURN value  */
-/************************************************/
 
-shared=[one,two]
-{
+boolean=[TRUE,FALSE] {
 	etat=2;
-	init= 0,1;						// 2 initial TURN values 
-	0=one;
-	1=two;
-	0->1[mvturn2];  				// 2nd process changes turn
-	1->0[mvturn1];	     			// 1st process changes turn
-	0->0[mvturn1, turn1];			// 1st process tests or changes turn for nothing 
-	1->1[mvturn2, turn2];			// 2nd process tests or changes turn for nothing
+	init=0,1;
+	0=FALSE;
+	1=TRUE;
+
+	0->0 [isFalse, toFalse];
+	1->1 [isTrue, toTrue];
+
+	0->1 [toTrue];
+	1->0 [toFalse];
+
 };;
 
-todot shared.dot shared;;
 
-
-systeme=<process P1, process P2, shared TURN>
+systeme=<process P1, process P2, boolean Q1, boolean Q2>
 {
-	<mvturn,_,mvturn1> -> p1;
-	<_,mvturn,mvturn2> -> p2;
+		<toWait,_,toTrue,_>;
+		<_,toWait,_,toTrue>;
 
-	<test,_,turn2> -> p1;
-	<_,test,turn1> -> p2;
+		<toCritical,_,_,isFalse>;
+		<_,toCritical,isFalse,_>;
 
-	<stop,_,_> -> p1;		
-	<_,stop,_> -> p2;
+		<toStart,_,toFalse,_>;
+		<_,toStart,_,toFalse>;
+
+		<toEnd,_,_,_>;
+		<_,toEnd,_,_>;
 };;
 
 /*
 	deadlock happens when a process is waiting for a TURN value move and the other has left this code section
 */
 
-systeme += deadlock <- !EX(true) && (P1.wait || P2.wait);;	
+//Define CTL to verifiy
+//TODO : Moi j'avais la formule en dessous ...  systeme += state_deadlock <- !EX(true) && (P1.wait || P2.wait)					;; //Progress
+systeme += state_critical <- P1.critical && P2.critical 								;; //Mutual Exclusion
+systeme += state_deadlock <- !EX(true) && !(P1.end && P2.end)						;; //Progress
+systeme += state_equity <- AG(P1.wait -> EF(P1.critical))								;; //Bounded Waiting
+systeme += state_strong_equity <- AG(P1.wait -> AF(P1.critical))				;; //Bounded Waiting
 
+//Assign state to var
+deadlock = systeme -> state_deadlock;;
+critical = systeme -> state_critical ;;
+equity = systeme -> state_equity;;
+strong_equity = systeme -> state_strong_equity;;
 
-todot fullsystem.dot systeme;;
+//Print Result
+todot primitiveQDot/process.dot process;;
+todot primitiveQDot/boolean.dot boolean;;
 
-reduct = systeme -> deadlock;;
+todot primitiveQDot/system.dot systeme;;
 
-todot reduct.dot reduct;;
+todot primitiveQDot/deadlock.dot deadlock ;;
+todot primitiveQDot/critical.dot critical ;;
+todot primitiveQDot/equity.dot equity ;;
+todot primitiveQDot/strong_equity.dot strong_equity ;;
