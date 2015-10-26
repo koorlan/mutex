@@ -11,7 +11,7 @@ load q.mso ;;
 load turn.mso ;;
 load Nprocesses.mso ;;
 
-#Dot->pdf (windows)
+##Dot->pdf (windows)
 Install graphviz
 Add graphviz bin directory to user PATH
 
