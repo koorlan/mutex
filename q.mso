@@ -11,71 +11,80 @@
 
 /*	
 	Initial system state 
- 	- Q1 :: 
- 	- Q2 ::
+ 	- Q1 :: true / false
+ 	- Q2 :: true / false
  	- P1 P2 :: start code excution   
 */
 
 
 /********************************************************/
 /* Subsystem  	: Process 		      		          	*/
-/* States       : critical, mvQ1, mvQ2 or test 			*/
+/* States       : 		*/
 /* Transitions  : move and loop        					*/
 /********************************************************/
 
-process=[critical,wait,end]
+process=[beginning,affectation,test,critical,end]
 {
-	etat=4;
+	etat=5;
 	init=0;
-	2=critical;
-	1=wait;
-	3=end;					
-	0->1[mvturn];			// change TURN value
-	1->2[test]; 			// test and wait 	
-	2->0;					// enter in critical code section
-	2->3[stop];				// stop this code section
+	0=beginning;
+	1=affectation;
+	2=test;
+	3=critical;
+	4=end;					
+	0->1[toAff];			// change Q value
+	1->2[toTest]; 			// test 	
+	2->3[toCrit];			// enter in critical code section
+	3->4[toEnd];			// change Q value again
+	4->0[toBegin];			// loop
 };;
 
 todot process.dot process;;
 
 /************************************************/
 /* Subsystem  	: Shared 	                    */
-/* States       : one::two						*/
-/* Transitions  : change or not the TURN value  */
+/* States       : isTrue, isFalse				*/
+/* Transitions  : change or not the Q values	*/
 /************************************************/
 
-shared=[one,two]
+shared=[istrue,isfalse]
 {
 	etat=2;
-	init= 0,1;						// 2 initial TURN values 
-	0=one;
-	1=two;
-	0->1[mvturn2];  				// 2nd process changes turn
-	1->0[mvturn1];	     			// 1st process changes turn
-	0->0[mvturn1, turn1];			// 1st process tests or changes turn for nothing 
-	1->1[mvturn2, turn2];			// 2nd process tests or changes turn for nothing
+	init= 0,1;						
+	0=istrue;
+	1=isfalse;
+	0->1[tofalse];  				
+	1->0[totrue];
+	0->0[ttot];
+	1->1[ftof];
 };;
 
 todot shared.dot shared;;
 
 
-systeme=<process P1, process P2, shared TURN>
+systeme=<process P1, process P2, shared Q1, shared Q2>
 {
-	<mvturn,_,mvturn1> -> p1;
-	<_,mvturn,mvturn2> -> p2;
+	<toAff,_,totrue,_> -> p1;
+	<_,toAff,_,totrue> -> p2;
 
-	<test,_,turn2> -> p1;
-	<_,test,turn1> -> p2;
+	<toTest,_,_,_> -> p1;
+	<_,toTest,_,_> -> p2;
 
-	<stop,_,_> -> p1;		
-	<_,stop,_> -> p2;
+	<toCrit,_,_,ftof> -> p1;		
+	<_,toCrit,ftof,_> -> p2;
+
+	<toEnd,_,tofalse,_> -> p1;		
+	<_,toEnd,_,tofalse> -> p2;
+
+	<toBegin,_,_,_> -> p1;		
+	<_,toBegin,_,_> -> p2;
 };;
 
 /*
 	deadlock happens when a process is waiting for a TURN value move and the other has left this code section
 */
 
-systeme += deadlock <- !EX(true) && (P1.wait || P2.wait);;	
+systeme += deadlock <- !EX(true) && (P1.test || P2.test);;	
 
 
 todot fullsystem.dot systeme;;
@@ -83,3 +92,8 @@ todot fullsystem.dot systeme;;
 reduct = systeme -> deadlock;;
 
 todot reduct.dot reduct;;
+
+systeme += mutualexcl <- P1.critical && P2.critical;;
+mutex = systeme -> mutualexcl;;
+
+todot mutex.dot mutex;;  

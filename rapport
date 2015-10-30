@@ -1,0 +1,245 @@
+
+\documentclass[a4paper]{report}
+
+% Options possibles : 10pt, 11pt, 12pt (taille de la fonte)
+%                     oneside, twoside (recto simple, recto-verso)
+%                     draft, final (stade de dÃ©veloppement)
+
+\usepackage[utf8]{inputenc}   % comprends les accents 
+\usepackage[T1]{fontenc}      % caractères français
+\usepackage[francais]{babel}  % liste de langues, la
+                              % dernière étant la langue principale
+\usepackage{moreverb}                         
+
+\usepackage[a4paper]{geometry}% Réduire les marges
+
+
+\geometry{hscale=0.85, vscale=0.85,centering}
+
+\title{Rapport Outils Preuve et Vérification\\ \textbf{Problème de l'exclusion mutuelle entre processus}}           
+
+\author{Korlan Colas \and Lisa Aubry}
+\date{25 octobre 2015}                       % La date n'est pas requise (la date du
+                              % jour de compilation est utilisée en son
+			      % absence)
+
+\sloppy                       % Ne pas faire déborder les lignes dans la marge
+
+\begin{document}
+
+\maketitle                    % Faire un titre utilisant les donnÃ©es
+                              % passÃ©es Ã  \title, \author et \date
+
+
+\tableofcontents              % Table des matiÃ¨res
+
+\chapter{Situations d'interblocage}                % Commencer une partie...
+
+\section{Algorithme 2.1}               % Commencer une section, etc.
+
+\subsection{Description générale}         % Section plus petite
+
+
+L'algorithme présenté à la figure 2.1 décrit le comportement de deux processus, pour lesquels l'accès à la section critique est régi par l'existence d'une seule variable partagée. 
+En l'occurence, cette variable nommée TURN observe un comportement booléen, en cela que sa valeur (entière) est soit un, soit deux.
+Afin d'apporter d'avantage de lisibilité au raisonnement qui va suivre, nous allons réécrire en partie l'algorithme proposé, en associant à chacune des instructions un numéro de ligne. 
+
+\renewcommand{\verbatimtabsize}{3}
+\begin{listing}[1]{1}
+TURN := 1;
+wait until TURN = 2;
+Critical Section
+\end{listing}
+
+\subsection{Représentation du problème}         % Section plus petite
+
+En vue d'une modélisation de cet algorithme avec l'outil Véritaf, nous définissons deux sous-systèmes. 
+L'un sera dédié à la représentation des processus et de leur avancée dans l'exécution du code, tandis que le second sous-système indiquera la valeur de TURN.   
+
+\paragraph{Le sous-système Process \\ \\} 
+
+$$\left\vert{S}\vert = 5 \right$$
+
+
+$$\left{S} = \{ 0, 1, 2, 3, 4 \} \right$$
+
+
+$$\left{S_0} = \{ 0 \}\right$$ 
+
+
+$$\left AP = \{ beginning, affectation, condition, critical, end \} $$
+
+
+$$
+\lambda = \left\{
+    \begin{array}{ll}
+        0 \rightarrow & \mbox{beginning} \\
+        1 \rightarrow & \mbox{affectation} \\
+        2 \rightarrow & \mbox{condition} \\
+        3 \rightarrow & \mbox{critical} \\
+        4 \rightarrow & \mbox{end} 
+    \end{array}
+\right.
+$$
+
+$$\left{Process} & \mbox{=} < S , {S_0} , \rightarrow , \lambda , AP > \right$$
+
+Ici, pour les états 1, 2 et 3, il y a correspondance entre le numéro de l'état et le numéro de la ligne que le processus est en train d'exécuter. 
+On ajoute en plus l'état 0 qui indique que le processus va entrer dans la section de code (donc qu'il se trouve avant la ligne 1), et l'état 4 qui indique que le processus est 
+sorti de manière définitive de la section de code (donc qu'il se situe après la ligne 3, sans effectuer de boucle). 
+
+\paragraph{Le sous-système Shared \\ \\} 
+
+$$\left\vert{S'}\vert = 2 \right$$
+
+
+$$\left{S'} = \{ 0, 1 \} \right$$
+
+
+$$\left{S_0'} = \{ 0, 1 \}\right$$ 
+
+
+$$\left AP = \{ one, two \} $$
+
+
+$$
+\lambda = \left\{
+    \begin{array}{ll}
+        0 \rightarrow & \mbox{one} \\
+        1 \rightarrow & \mbox{two} \\
+    \end{array}
+\right.
+$$
+
+$$\left{Shared} & \mbox{=} < S' , {S_0'} , \rightarrow , \lambda , AP > \right$$
+
+Comme dit précédemment, les états de ce sous-système donnent la valeur de la variable partagée, et ce de manière explicite. 
+
+\subsection{Système}
+Le système correspondant à notre problème sera constitué de deux éléments P1 et P2, affiliés au sous-système Process, 
+ainsi que d'un élément nommé TURN qui correspond au sous-système Shared. 
+Afin que le présent rapport reste concis, les transitions définies pour chacun des sous-sytèmes sont plus amplement commentées 
+dans le programme Véritaf.
+
+\subsection{Résultat}         
+
+Conformément à notre définition du système complet, le non respect de la propriété d'exclusion mutuelle peut-être formalisée
+en logique CTL par : \\
+$$ (1) P1.critical \land P2.critical$$
+\\ 
+
+ 
+De même, une situation d'interblocage sera formulée de la manière suivante : \\
+$$ (2) !EX(true) \land ( P1.condition \lor P2.condition )$$
+
+D'après nos résultats, l'exclusion mutuelle des processus au regard de la section critique est préservée dans le cas présent. 
+En effet, le réduit qui vérifie la formule (1) est vide.
+\\
+Cependant, le réduit vérifiant la formule (2) est non vide.
+On en conclut que cet algorithme mène à une situation d'interblocage qui survient lorsqu'un processus quitte cette partie de code (état $end$), tandis que le deuxième processus
+est en attente d'une modification de la valeur de TURN. Autrement dit, un processus est susceptible d'attendre indéfiniement 
+sans que l'accès à la section critique ne lui soit jamais accordé. 
+
+\section{Algorithme 2.2}               % Commencer une section, etc.
+
+\subsection{Description générale}         % Section plus petite
+
+
+L'algorithme présenté à la figure 2.2 délaisse la variable partagée TURN au profit de deux variables partagée appelées Q1 et Q2, lesquelles vérifient aussi des valeurs booléennes. Une fois encore, voici
+la partie de code proposée pour le premier processus. 
+
+\renewcommand{\verbatimtabsize}{3}
+\begin{listing}[1]{1}
+Q1 := true;
+wait until not Q2;
+Critical Section
+Q1 := false;
+\end{listing}
+
+\subsection{Représentation du problème}         % Section plus petite
+
+Nous définissons également deux sous-systèmes sur le même modèle que précédemment, à savoir l'un pour décrire l'avancée des deux processus dans le code,
+et l'autre aui aura vocation de modéliser les variables partagées. 
+
+\paragraph{Le sous-système Process \\ \\} 
+
+$$\left\vert{S}\vert = 5 \right$$
+
+
+$$\left{S} = \{ 0, 1, 2, 3, 4 \} \right$$
+
+
+$$\left{S_0} = \{ 0 \}\right$$ 
+
+
+$$\left AP = \{ beginning, affectation, condition, critical, end \} $$
+
+
+$$
+\lambda = \left\{
+    \begin{array}{ll}
+        0 \rightarrow & \mbox{beginning} \\
+        1 \rightarrow & \mbox{affectation} \\
+        2 \rightarrow & \mbox{test} \\
+        3 \rightarrow & \mbox{critical} \\
+        4 \rightarrow & \mbox{end} 
+    \end{array}
+\right.
+$$
+
+$$\left{Process} & \mbox{=} < S , {S_0} , \rightarrow , \lambda , AP > \right$$
+
+Pour les états 1, 2, 3 et 4, il y a correspondance entre le numéro de l'état et le numéro de la ligne que le processus est en train d'exécuter. 
+On ajoute en plus l'état 0 qui indique que le processus va entrer dans la section de code (donc qu'il se situe avant la ligne 1).
+
+\paragraph{Le sous-système Shared \\ \\} 
+
+$$\left\vert{S'}\vert = 2 \right$$
+
+
+$$\left{S'} = \{ 0, 1 \} \right$$
+
+
+$$\left{S_0'} = \{ 0, 1 \}\right$$ 
+
+
+$$\left AP = \{ istrue, isfalse \} $$
+
+
+$$
+\lambda = \left\{
+    \begin{array}{ll}
+        0 \rightarrow & \mbox{istrue} \\
+        1 \rightarrow & \mbox{isfalse} \\
+    \end{array}
+\right.
+$$
+
+$$\left{Shared} & \mbox{=} < S' , {S_0'} , \rightarrow , \lambda , AP > \right$$
+
+De manière analogue, ce sous-sytème et ses états permettront d'indiquer quelle est la valeur de Qi. 
+
+\subsection{Système}
+On définit ensuite P1 et P2, régis par le sous-système Process, 
+ainsi que Q1 et Q2 associés au sous-système Shared. 
+
+\subsection{Résultat}         
+
+Conformément à notre définition du système complet, le non respect de la propriété d'exclusion mutuelle peut-être formalisée
+en logique CTL par : \\
+$$ (1) P1.critical \land P2.critical$$
+\\ 
+
+ 
+De même, une situation d'interblocage sera formulée de la manière suivante : \\
+$$ (2) !EX(true) \land ( P1.test \lor P2.test )$$
+
+Tout comme pour l'algorithme précédent, les accès concurrents concurrents à la section critique sont gérés convenablement par cet algorithme. 
+Cela se confirme par le fait que le réduit vérifiant la formule (1) est vide.
+\\
+Une fois encore, le réduit vérifiant la formule (2) est non vide.
+Ici, et contrairement aux cas précédents, la situation d'interblocage a lieu alors que les deux processus tentent d'accéder à la section critique.
+En effet, on peut constater que dans ce cas, $Q1 = Q2 = true$. 
+\end{document}
+
+    
