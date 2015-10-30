@@ -96,12 +96,12 @@ systeme = <process P1,boolean Q1,process P2,boolean Q2,shared TURN> {
   <_,_,toEnd,_,_> -> p2;
 
   /*Q <- TRUE*/
-  <toStart2,toTrue,_,_,_> -> p1;
-  <_,_,toStart2,toTrue,_> -> p2;
+  <toStart2,_,_,_,toTurn1> -> p1;
+  <_,_,toStart2,_,toTurn2> -> p2;
 
   /*Turn <- 1 or 2*/
-  <toWait,_,_,_,toTurn1> -> p1;
-  <_,_,toWait,_,toTurn2> -> p2;
+  <toWait,toTrue,_,_,_> -> p1;
+  <_,_,toWait,toTrue,_> -> p2;
 
   /* P1 : wait Q2 == TRUE or TURN == 2*/
   <toCritical,_,_,isFalse,_> -> p1;
@@ -143,12 +143,12 @@ equity = systeme -> state_equity;;
 strong_equity = systeme -> state_strong_equity;;
 
 //Print Result
-todot simpleDot/process.dot process;;
-todot simpleDot/boolean.dot boolean;;
+todot simpleInverseDot/process.dot process;;
+todot simpleInverseDot/boolean.dot boolean;;
 
-todot simpleDot/system.dot systeme;;
+todot simpleInverseDot/system.dot systeme;;
 
-todot simpleDot/deadlock.dot deadlock ;;
-todot simpleDot/critical.dot critical ;;
-todot simpleDot/equity.dot equity ;;
-todot simpleDot/strong_equity.dot strong_equity ;;
+todot simpleInverseDot/deadlock.dot deadlock ;;
+todot simpleInverseDot/critical.dot critical ;;
+todot simpleInverseDot/equity.dot equity ;;
+todot simpleInverseDot/strong_equity.dot strong_equity ;;

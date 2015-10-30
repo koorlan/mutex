@@ -1,0 +1,221 @@
+sharedQ=[turn0,turn1,turn2,turn3] {
+	etat=4;
+	init=0;
+	0=val0;
+	1=val1;
+	2=val2;
+	3=val3;
+
+	0->0 [is0, to0];
+	1->1 [is1, to1];
+	2->2 [is2, to2];
+	3->3 [is3, to3];
+
+
+	1->0 [to0];
+	2->0 [to0];
+	3->0 [to0]
+
+	0->1 [to1];
+	2->1 [to1];
+	3->1 [to1];
+
+	0->2 [to2];
+	1->2 [to2];
+	3->2 [to2];
+
+	0->3 [to3];
+	1->3 [to3];
+	2->3 [to3];
+};;
+
+sharedT=[turn0,turn1,turn2,turn3] {
+	etat=4;
+	init=1;
+	0=turn0;
+	1=turn1;
+	2=turn2;
+	3=turn3;
+
+	0->0 [is0, to0];
+	1->1 [is1, to1];
+	2->2 [is2, to2];
+	3->3 [is3, to3];
+
+
+	1->0 [to0];
+	2->0 [to0];
+	3->0 [to0]
+
+	0->1 [to1];
+	2->1 [to1];
+	3->1 [to1];
+
+	0->2 [to2];
+	1->2 [to2];
+	3->2 [to2];
+
+	0->3 [to3];
+	1->3 [to3];
+	2->3 [to3];
+};;
+
+process=[start,for11,for12,loop2,for21,for22,critical,end]{
+	etat=8;
+	init=0;
+
+	0=start;
+	1=for11;
+	2=for12;
+	3=loop2;
+	4=for21;
+	5=for21;
+	6=critical;
+	7=end;
+
+	0->1 [toFor11];
+	1->2 [toFor12];
+	2->3 [toLoop2];
+	3->4 [toFor21];
+	4->5 [toFor22];
+	5->6 [toCritical];
+	0->7 [toEnd];
+	6->0 [toStart];
+
+};;
+
+
+
+
+systeme = <process P1,process P2, process P3, sharedQ Q1, sharedQ Q2, sharedQ Q3, sharedT t1, sharedT t2> {
+
+	<toEnd,_,_,_,_,_,_,_> ;
+	<_,toEnd,_,_,_,_,_,_> ;
+	<_,_,toEnd,_,_,_,_,_> ;
+
+	/* J = 1 Q[processNumber] <- j */
+	<toFor11,_,_,to1,_,_,_,_> ;
+	<_,toFor11,_,_,to1,_,_,_> ;
+	<_,_,toFor11,_,_,to1,_,_> ;
+
+	/* J = 1  TURN[J] <- i (ProcessNUmber) */
+	<toFor12,_,_,_,_,_,to1,_> ;
+	<_,toFor12,_,_,_,_,to2,_> ;
+	<_,_,toFor12,_,_,_,to3,_> ;
+
+	/* J = 1 , wait Turn[j] != ProcessNumber */
+	<toLoop2,_,_,_,_,_,is2,_> ;
+		/*Note(contrapose) : turn[1] == 2 OR turn1[1] ==3 */
+	<toLoop2,_,_,_,_,_,is3,_> ;
+
+	<_,toLoop2,_,_,_,_,is1,_> ;
+		/*Note(contrapose) : turn[1] == 1 OR turn1[1] ==3 */
+	<_,toLoop2,_,_,_,_,is3,_> ;
+
+	<_,_,toLoop2,_,_,_,is1,_> ;
+		/*Note(contrapose) : turn[1] == 1 OR turn1[1] ==2 */
+	<_,_,toLoop2,_,_,_,is2,_> ;
+
+	/* OR */
+
+	/*J=1 , wait with k != processNumber Q[K] < J */
+	/*Process 1 (k!=1 -> k == 2 || k == 3)*/
+	/* Q[2]<1 => Q[2]== 0 && Q[3]<1 => Q[3] ==0 */
+		<toLoop2,_,_,_,is0,is0,_,_> ;
+	/*p2*/
+		<_,toLoop2,_,is0,_,is0,_,_> ;
+	/*p3*/
+		<_,_,toLoop2,is0,is0,_,_,_> ;
+
+	/* end for -> j = 1 -->
+
+	/********************************/
+
+
+	/* J = 2 */
+	/* Q[ProcessNumber] <- J */
+	<toFor21,_,_,to2,_,_,_,_> ;
+	<_,toFor21,_,_,to2,_,_,_> ;
+	<_,_,toFor21,_,_,to2,_,_> ;
+
+	/* J = 2  TURN[J] <- i (ProcessNUmber) */
+	<toFor22,_,_,_,_,_,_,to1> ;
+	<_,toFor22,_,_,_,_,_,to2> ;
+	<_,_,toFor22,_,_,_,_,to3> ;
+
+	/* J = 2 , wait Turn[j] != ProcessNumber */
+	<toCritical,_,_,_,_,_,_,is2> ;
+		/*Note(contrapose) : turn[1] == 2 OR turn1[1] ==3 */
+	<toCritical,_,_,_,_,_,_,is3> ;
+
+	<_,toCritical,_,_,_,_,_,is1> ;
+		/*Note(contrapose) : turn[1] == 1 OR turn1[1] ==3 */
+	<_,toCritical,_,_,_,_,_,is3> ;
+
+	<_,_,toCritical,_,_,_,_,is1> ;
+		/*Note(contrapose) : turn[1] == 1 OR turn1[1] ==2 */
+	<_,_,toCritical,_,_,_,_,is2> ;
+
+	/* OR */
+
+	/*J=2 , wait with k != processNumber Q[K] < 2 */
+	/*Process 1 (k!=1 -> k == 2 || k == 3)*/
+	/* Q[2]<1 => Q[2]== 0 && Q[3]<1 => Q[3] ==0 */
+		<toCritical,_,_,_,is0,is0,_,_> ;
+		<toCritical,_,_,_,is0,is1,_,_> ;
+		<toCritical,_,_,_,is1,is0,_,_> ;
+		<toCritical,_,_,_,is1,is1,_,_> ;
+	/*p2*/
+		<_,toCritical,_,is0,_,is0,_,_> ;
+		<_,toCritical,_,is0,_,is1,_,_> ;
+		<_,toCritical,_,is1,_,is0,_,_> ;
+		<_,toCritical,_,is1,_,is1,_,_> ;
+	/*p3*/
+		<_,_,toCritical,is0,is0,_,_,_> ;
+		<_,_,toCritical,is0,is1,_,_,_> ;
+		<_,_,toCritical,is1,is0,_,_,_> ;
+		<_,_,toCritical,is1,is1,_,_,_> ;
+
+	/*End for loop -> im' in critical section here */
+
+	<toStart,_,_,to0,_,_,_,_> ;
+	<_,toStart,_,_,to0,_,_,_> ;
+	<_,_,toStart,_,_,to0,_,_> ;
+};;
+
+/* Solution to the Critical Section Problem must meet three conditions...
+
+	#### MUTUAL EXCLUSION: if process is executing in its critical section, no other process is executing in its critical section
+  ####  PROGRESS: if no process is executing in its critical section and there exists some processes that wish to enter their critical sections, then only those processes that are not executing in their remainder section can participate in the decision of which will enter its critical section next, and this decision cannot be postponed indefinitely
+
+        if no process is in critical section, can decide quickly who enters
+        only one process can enter the critical section so in practice, others are put on the queue
+  ####  BOUNDED WAITING: there must exist a bound on the number of times that other processes are allowed to enter their critical sections after a process has made a request to enter its critical section and before that request is granted
+
+        The wait is the time from when a process makes a request to enter its critical section until that request is granted
+        in practice, once a process enters its critical section, it does not get another turn until a waiting process gets a turn (managed as a queue)
+	*/
+
+//Define CTL to verifiy
+//TODO : Moi j'avais la formule en dessous ...  systeme += state_deadlock <- !EX(true) && (P1.wait || P2.wait)					;; //Progress
+systeme += state_critical <- P1.critical && P2.critical && P3.critical;;								 //Mutual Exclusion
+systeme += state_deadlock  <- !EX(true) && !(P1.end && P2.end && P3.end);;					 //Progress
+systeme += state_equity <- AG(P1.for21 -> EF(P1.critical));;							 //Bounded Waiting
+systeme += state_strong_equity<- AG(P1.for21 -> AF(P1.critical));;				 //Bounded Waiting
+
+//Assign state to var
+deadlock = systeme -> state_deadlock;;
+critical = systeme -> state_critical ;;
+equity = systeme -> state_equity;;
+strong_equity = systeme -> state_strong_equity;;
+
+//Print Result
+todot nprocessesDot/process.dot process;;
+todot nprocessesDot/boolean.dot boolean;;
+
+todot nprocessesDot/system.dot systeme;;
+
+todot nprocessesDot/deadlock.dot deadlock ;;
+todot nprocessesDot/critical.dot critical ;;
+todot nprocessesDot/equity.dot equity ;;
+todot nprocessesDot/strong_equity.dot strong_equity ;;

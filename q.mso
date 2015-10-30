@@ -6,8 +6,9 @@
 /*
  	Description :
  		P1 and P2, 2 process
- 		Q1 & Q2, 2 shared values 
+ 		Q1 & Q2, 2 shared values
 */
+
 
 /*	
 	Initial system state 
@@ -23,23 +24,26 @@
 /* Transitions  : move and loop        					*/
 /********************************************************/
 
+
 process=[beginning,affectation,test,critical,end]
 {
 	etat=5;
 	init=0;
+
 	0=beginning;
 	1=affectation;
 	2=test;
 	3=critical;
-	4=end;					
-	0->1[toAff];			// change Q value
+	4=end;			
+
+	0->1[toAff];			// change Qi value
 	1->2[toTest]; 			// test 	
 	2->3[toCrit];			// enter in critical code section
-	3->4[toEnd];			// change Q value again
+	3->4[toEnd];			// change Qi value again
 	4->0[toBegin];			// loop
 };;
 
-todot process.dot process;;
+
 
 /************************************************/
 /* Subsystem  	: Shared 	                    */
@@ -50,18 +54,18 @@ todot process.dot process;;
 shared=[istrue,isfalse]
 {
 	etat=2;
-	init= 0,1;						
+	init= 0,1;	
+
 	0=istrue;
 	1=isfalse;
+
 	0->1[tofalse];  				
 	1->0[totrue];
 	0->0[ttot];
 	1->1[ftof];
 };;
 
-todot shared.dot shared;;
-
-
+	
 systeme=<process P1, process P2, shared Q1, shared Q2>
 {
 	<toAff,_,totrue,_> -> p1;
@@ -80,20 +84,28 @@ systeme=<process P1, process P2, shared Q1, shared Q2>
 	<_,toBegin,_,_> -> p2;
 };;
 
-/*
-	deadlock happens when a process is waiting for a TURN value move and the other has left this code section
-*/
-
-systeme += deadlock <- !EX(true) && (P1.test || P2.test);;	
 
 
-todot fullsystem.dot systeme;;
+//Define CTL to verifiy
 
-reduct = systeme -> deadlock;;
+systeme += state_deadlock <- !EX(true) && (P1.test || P2.test)					;; //Progress
+systeme += state_critical <- P1.critical && P2.critical 								;; //Mutual Exclusion
+systeme += state_equity <- AG(P1.test -> EF(P1.critical))								;; //Bounded Waiting
+systeme += state_strong_equity <- AG(P1.test -> AF(P1.critical))				;; //Bounded Waiting
 
-todot reduct.dot reduct;;
+//Assign state to var
+deadlock = systeme -> state_deadlock;;
+critical = systeme -> state_critical ;;
+equity = systeme -> state_equity;;
+strong_equity = systeme -> state_strong_equity;;
 
-systeme += mutualexcl <- P1.critical && P2.critical;;
-mutex = systeme -> mutualexcl;;
+//Print Result
+todot primitiveTDot/process.dot process;;
+todot primitiveTDot/shared.dot shared;;
 
-todot mutex.dot mutex;;  
+todot primitiveTDot/system.dot systeme;;
+
+todot primitiveTDot/deadlock.dot deadlock ;;
+todot primitiveTDot/critical.dot critical ;;
+todot primitiveTDot/equity.dot equity ;;
+todot primitiveTDot/strong_equity.dot strong_equity ;;
