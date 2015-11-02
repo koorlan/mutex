@@ -116,19 +116,6 @@ systeme = <process P1,boolean Q1,process P2,boolean Q2,shared TURN> {
   <_,_,toStart,toFalse,_> -> p2;
 };;
 
-systeme += EtatBloquant <- !EX(true) && !(P1.end && P2.end);;
-systeme += EtatCriticalMutual <- P1.critical && P2.critical;;
-
-todot simpleSysteme.dot systeme;;
-
-simpleReduit = systeme -> EtatBloquant;;
-todot simpleReduit.dot simpleReduit;;
-
-simpleCritical = systeme -> EtatCriticalMutual;;
-todot simpleCritical.dot simpleCritical;;
-
-
-
 //Define CTL to verifiy
 //TODO : Moi j'avais la formule en dessous ...  systeme += state_deadlock <- !EX(true) && (P1.wait || P2.wait)					;; //Progress
 systeme += state_critical <- P1.critical && P2.critical ;;								 //Mutual Exclusion
@@ -144,7 +131,8 @@ strong_equity = systeme -> state_strong_equity;;
 
 //Print Result
 todot simpleInverseDot/process.dot process;;
-todot simpleInverseDot/boolean.dot boolean;;
+todot simpleInverseDot/sharedQ.dot sharedQ;;
+todot simpleInverseDot/sharedT.dot sharedT;;
 
 todot simpleInverseDot/system.dot systeme;;
 

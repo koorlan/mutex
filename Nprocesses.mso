@@ -1,4 +1,4 @@
-sharedQ=[turn0,turn1,turn2,turn3] {
+sharedQ=[val0,val1,val2,val3] {
 	etat=4;
 	init=0;
 	0=val0;
@@ -45,7 +45,7 @@ sharedT=[turn0,turn1,turn2,turn3] {
 
 	1->0 [to0];
 	2->0 [to0];
-	3->0 [to0]
+	3->0 [to0];
 
 	0->1 [to1];
 	2->1 [to1];
@@ -69,7 +69,7 @@ process=[start,for11,for12,loop2,for21,for22,critical,end]{
 	2=for12;
 	3=loop2;
 	4=for21;
-	5=for21;
+	5=for22;
 	6=critical;
 	7=end;
 
@@ -200,8 +200,8 @@ systeme = <process P1,process P2, process P3, sharedQ Q1, sharedQ Q2, sharedQ Q3
 //TODO : Moi j'avais la formule en dessous ...  systeme += state_deadlock <- !EX(true) && (P1.wait || P2.wait)					;; //Progress
 systeme += state_critical <- P1.critical && P2.critical && P3.critical;;								 //Mutual Exclusion
 systeme += state_deadlock  <- !EX(true) && !(P1.end && P2.end && P3.end);;					 //Progress
-systeme += state_equity <- AG(P1.for21 -> EF(P1.critical));;							 //Bounded Waiting
-systeme += state_strong_equity<- AG(P1.for21 -> AF(P1.critical));;				 //Bounded Waiting
+systeme += state_equity <- (AG(P1.for21 -> EF(P1.critical)));;							 //Bounded Waiting
+systeme += state_strong_equity<- (AG(P1.for21 -> AF(P1.critical)));;				 //Bounded Waiting
 
 //Assign state to var
 deadlock = systeme -> state_deadlock;;
@@ -211,7 +211,8 @@ strong_equity = systeme -> state_strong_equity;;
 
 //Print Result
 todot nprocessesDot/process.dot process;;
-todot nprocessesDot/boolean.dot boolean;;
+todot nprocessesDot/sharedQ.dot sharedQ;;
+todot nprocessesDot/sharedT.dot sharedT;;
 
 todot nprocessesDot/system.dot systeme;;
 

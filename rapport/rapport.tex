@@ -1,0 +1,821 @@
+\documentclass[a4paper]{report}
+
+% Options possibles : 10pt, 11pt, 12pt (taille de la fonte)
+%                     oneside, twoside (recto simple, recto-verso)
+%                     draft, final (stade de dÃ©veloppement)
+
+\usepackage[utf8]{inputenc}   % comprends les accents
+\usepackage[T1]{fontenc}      % caractères français
+\usepackage[francais]{babel}  % liste de langues, la
+                              % dernière étant la langue principale
+\usepackage{moreverb}
+
+\usepackage[a4paper]{geometry}% Réduire les marges
+
+\usepackage{dot2texi}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows}
+\usepackage{amsmath}
+\usepackage{listings}
+\geometry{hscale=0.85, vscale=0.85,centering}
+
+\title{Rapport Outils Preuve et Vérification\\ \textbf{Problème de l'exclusion mutuelle entre processus}}
+
+\author{Korlan Colas \and Lisa Aubry}
+\date{25 octobre 2015}                       % La date n'est pas requise (la date du
+                              % jour de compilation est utilisée en son
+			      % absence)
+
+\sloppy                       % Ne pas faire déborder les lignes dans la marge
+
+\begin{document}
+
+\maketitle                    % Faire un titre utilisant les donnÃ©es
+                              % passÃ©es Ã  \title, \author et \date
+
+
+\tableofcontents              % Table des matiÃ¨res
+
+\chapter{Situations d'interblocage}                % Commencer une partie...
+
+\section{Algorithme 2.1}               % Commencer une section, etc.
+
+\subsection{Description générale}         % Section plus petite
+
+L'algorithme présenté à la figure 2.1 décrit le comportement de deux processus, pour lesquels l'accès à la section critique est régi par l'existence d'une seule variable partagée.
+En l'occurence, cette variable nommée TURN observe un comportement booléen, en cela que sa valeur (entière) est soit un, soit deux.
+Afin d'apporter d'avantage de lisibilité au raisonnement qui va suivre, nous allons réécrire en partie l'algorithme proposé, en associant à chacune des instructions un numéro de ligne.
+
+
+\begin{listing}[1]{1}
+TURN := 1;
+wait until TURN = 2;
+Critical Section
+\end{listing}
+
+\subsection{Représentation du problème}         % Section plus petite
+
+En vue d'une modélisation de cet algorithme avec l'outil Véritaf, nous définissons deux sous-systèmes.
+L'un sera dédié à la représentation des processus et de leur avancée dans l'exécution du code, tandis que le second sous-système indiquera la valeur de TURN.
+
+
+\paragraph{Le sous-système Process}
+\hfill\break
+\begin{minipage}{0.5\textwidth}
+\flushleft
+\begin{flalign*}
+    & \vert{S}\vert = 5 & \\
+    & S = \{ 0, 1, 2, 3, 4 \} &\\
+    &S_0 = \{ 0 \} &\\
+     &AP = \{ beginning, affectation, condition, critical, end \}  &\\
+    & \lambda = \left\{
+    \begin{array}{ll}
+        0 \rightarrow & \mbox{beginning} \\
+        1 \rightarrow & \mbox{affectation} \\
+        2 \rightarrow & \mbox{condition} \\
+        3 \rightarrow & \mbox{critical} \\
+        4 \rightarrow & \mbox{end}
+    \end{array} 
+	\right. &\\
+	& \rightarrow = \{ toBegin, toCond, toCrit, toAff, toEnd \}  & \\
+	& Process = < S , {S_0} , \rightarrow , \lambda , AP > &\\
+\end{flalign*}
+\end{minipage}
+\begin{minipage}{0.3\textwidth}
+\flushright
+\begin{dot2tex}[neato]
+		digraph system {
+_0[label="", shape=none ];
+_0->0;
+3 [label= "3 [critical]"];
+1 [label= "1 [affectation]"];
+2 [label= "2 [condition]"];
+4 [label= "4 [end]"];
+0 [label= "0 [beginning]"];
+3->4 [label= "toEnd"];
+3->0 [label= "toBegin"];
+1->2 [label= "toCond"];
+2->3 [label= "toCrit"];
+0->1 [label= "toAff"];
+}
+\end{dot2tex} 
+\end{minipage}
+
+Ici, pour les états 1, 2 et 3, il y a correspondance entre le numéro de l'état et le numéro de la ligne que le processus est en train d'exécuter.
+On ajoute en plus l'état 0 qui indique que le processus va entrer dans la section de code (donc qu'il se trouve avant la ligne 1), et l'état 4 qui indique que le processus est
+sorti de manière définitive de la section de code (donc qu'il se situe après la ligne 3, sans effectuer de boucle).
+
+\paragraph{Le sous-système Shared}
+\hfill\break
+
+\begin{minipage}{0.5\textwidth}
+\flushleft
+\begin{flalign*}
+    & \vert{S}\vert = 2 & \\
+    & S = \{ 0, 1\} &\\
+    &S_0 = \{ 0 \} &\\
+     &AP = \{ one, two \}  &\\
+    & \lambda = \left\{
+    \begin{array}{ll}
+        0 \rightarrow & \mbox{one} \\
+        1 \rightarrow & \mbox{two}
+    \end{array} 
+	\right. &\\
+	& \rightarrow = \{ aff2, aff1, testP1, critP2, testP2, critP1 \}  & \\
+	& Process = < S , {S_0} , \rightarrow , \lambda , AP > &\\
+\end{flalign*}
+\end{minipage}
+\begin{minipage}{0.3\textwidth}
+\flushright
+\begin{dot2tex}[dot]
+digraph system {
+_1[label="", shape=none ];
+_1->1;
+_0[label="", shape=none ];
+_0->0;
+1 [label= "1 [two]"];
+0 [label= "0 [one]"];
+1->1 [label= "[critP1, testP2]"];
+1->0 [label= "aff1"];
+0->1 [label= "aff2"];
+0->0 [label= "[critP2, testP1]"];
+}
+\end{dot2tex} 
+\end{minipage}
+
+Comme dit précédemment, les états de ce sous-système donnent la valeur de la variable partagée, et ce de manière explicite.
+
+\subsection{Système}
+Le système correspondant à notre problème sera constitué de deux éléments P1 et P2, affiliés au sous-système Process,
+ainsi que d'un élément nommé TURN qui correspond au sous-système Shared.
+Afin que le présent rapport reste concis, les transitions définies pour chacun des sous-sytèmes sont plus amplement commentées
+dans le programme Véritaf.
+
+\subsection{Résultat}
+
+Conformément à notre définition du système complet, le non respect de la propriété d'exclusion mutuelle peut-être formalisée
+en logique CTL par : \\
+$$ (1) P1.critical \land P2.critical$$
+\\
+
+
+De même, une situation d'interblocage sera formulée de la manière suivante : \\
+$$ (2) !EX(true) \land ( P1.condition \lor P2.condition )$$
+
+D'après nos résultats, l'exclusion mutuelle des processus au regard de la section critique est préservée dans le cas présent.
+En effet, le réduit qui vérifie la formule (1) est vide.
+\\
+Cependant, le réduit vérifiant la formule (2) est non vide.
+On en conclut que cet algorithme mène à une situation d'interblocage qui survient lorsqu'un processus quitte cette partie de code (état $end$), tandis que le deuxième processus
+est en attente d'une modification de la valeur de TURN. Autrement dit, un processus est susceptible d'attendre indéfiniement
+sans que l'accès à la section critique ne lui soit jamais accordé.
+
+\section{Algorithme 2.2}               % Commencer une section, etc.
+
+\subsection{Description générale}         % Section plus petite
+
+
+L'algorithme présenté à la figure 2.2 délaisse la variable partagée TURN au profit de deux variables partagée appelées Q1 et Q2, lesquelles vérifient aussi des valeurs booléennes. Une fois encore, voici
+la partie de code proposée pour le premier processus.
+
+\renewcommand{\verbatimtabsize}{3}
+\begin{listing}[1]{1}
+Q1 := true;
+wait until not Q2;
+Critical Section
+Q1 := false;
+\end{listing}
+
+\subsection{Représentation du problème}         % Section plus petite
+
+Nous définissons également deux sous-systèmes sur le même modèle que précédemment, à savoir l'un pour décrire l'avancée des deux processus dans le code,
+et l'autre aui aura vocation de modéliser les variables partagées.
+
+\paragraph{Le sous-système Process}
+\hfill\break
+
+\begin{minipage}{0.5\textwidth}
+\flushleft
+\begin{flalign*}
+    & \vert{S}\vert = 5 & \\
+    & S = \{ 0, 1, 2, 3, 4 \} &\\
+    &S_0 = \{ 0 \} &\\
+     &AP = \{ beginning, affectation, condition, critical, end \}  &\\
+    & \lambda = \left\{
+    \begin{array}{ll}
+        0 \rightarrow & \mbox{beginning} \\
+        1 \rightarrow & \mbox{affectation} \\
+        2 \rightarrow & \mbox{condition} \\
+        3 \rightarrow & \mbox{critical} \\
+        4 \rightarrow & \mbox{end}
+    \end{array} 
+\right. &\\
+	& \rightarrow = \{ toBegin, toCond, toCrit, toAff, toEnd \}  & \\
+	& Process = < S , {S_0} , \rightarrow , \lambda , AP > &\\
+\end{flalign*}
+\end{minipage}
+\begin{minipage}{0.3\textwidth}
+\flushright
+\begin{dot2tex}[neato]
+		digraph system {
+_0[label="", shape=none ];
+_0->0;
+3 [label= "3 [critical]"];
+1 [label= "1 [affectation]"];
+2 [label= "2 [condition]"];
+4 [label= "4 [end]"];
+0 [label= "0 [beginning]"];
+3->4 [label= "toEnd"];
+3->0 [label= "toBegin"];
+1->2 [label= "toCond"];
+2->3 [label= "toCrit"];
+0->1 [label= "toAff"];
+}
+\end{dot2tex} 
+\end{minipage}
+
+Pour les états 1, 2, 3 et 4, il y a correspondance entre le numéro de l'état et le numéro de la ligne que le processus est en train d'exécuter.
+On ajoute en plus l'état 0 qui indique que le processus va entrer dans la section de code (donc qu'il se situe avant la ligne 1).
+
+\paragraph{Le sous-système Shared }
+\hfill\break
+
+\begin{minipage}{0.5\textwidth}
+\flushleft
+\begin{flalign*}
+    & \vert{S}\vert = 2 & \\
+    & S = \{ 0, 1\} &\\
+    &S_0 = \{ 0 \} &\\
+     &AP = \{ isTrue, isFalse \}  &\\
+    & \lambda = \left\{
+    \begin{array}{ll}
+        0 \rightarrow & \mbox{isTrue} \\
+        1 \rightarrow & \mbox{isFalse}
+    \end{array} 
+	\right. &\\
+	& \rightarrow = \{ toFalse, toTrue, ftof, ttot \}  & \\
+	& Process = < S , {S_0} , \rightarrow , \lambda , AP > &\\
+\end{flalign*}
+\end{minipage}
+\begin{minipage}{0.3\textwidth}
+\flushright
+\begin{dot2tex}[dot]
+digraph system {
+_1[label="", shape=none ];
+_1->1;
+_0[label="", shape=none ];
+_0->0;
+1 [label= "1 [isfalse]"];
+0 [label= "0 [istrue]"];
+1->1 [label= "ftof"];
+1->0 [label= "totrue"];
+0->1 [label= "tofalse"];
+0->0 [label= "ttot"];
+}
+\end{dot2tex} 
+\end{minipage}
+
+
+De manière analogue, ce sous-sytème et ses états permettront d'indiquer quelle est la valeur de Qi.
+
+\subsection{Système}
+On définit ensuite P1 et P2, régis par le sous-système Process,
+ainsi que Q1 et Q2 associés au sous-système Shared.
+
+\subsection{Résultat}
+
+Conformément à notre définition du système complet, le non respect de la propriété d'exclusion mutuelle peut-être formalisée
+en logique CTL par : \\
+$$ (1) P1.critical \land P2.critical$$
+\\
+
+De même, une situation d'interblocage sera formulée de la manière suivante : \\
+$$ (2) !EX(true) \land ( P1.test \lor P2.test )$$
+
+Tout comme pour l'algorithme précédent, les accès concurrents concurrents à la section critique sont gérés convenablement par cet algorithme.
+Cela se confirme par le fait que le réduit vérifiant la formule (1) est vide.
+\\
+Une fois encore, le réduit vérifiant la formule (2) est non vide.
+Ici, et contrairement aux cas précédents, la situation d'interblocage a lieu alors que les deux processus tentent d'accéder à la section critique.
+En effet, on peut constater que dans ce cas, $Q1 = Q2 = true$.
+
+\chapter{Mutex pour 2 processus} 
+\section{Solution simple}
+\subsection{Description générale}
+L'algorithme présenté à la figure 1 est une solution pour que deux processus puissent partager une section critique commune. Cette solution a besoin d'une variable partagée TURN modifiées par les deux processus ainsi que Q1 et Q2 appartenant respectivement au processus 1 et 2. Le processus 1 accède en lecture à la variable Q2 et inversement pour le second processus. Par ailleurs, seulement le premier processus pourra modifier Q1 ( et inversement pour le deuxième processus. 
+
+\begin{minipage}{0.5\textwidth}
+\flushleft
+\renewcommand{\verbatimtabsize}{3}
+\begin{listing}[1]{1}
+/* protocol for P1 */
+Q1 := true;
+TURN := 1
+wait until not Q2 or TURN = 2;
+Critical Section
+Q1 := false;
+\end{listing}
+\renewcommand{\verbatimtabsize}{3}
+\end{minipage}
+\begin{minipage}{0.5\textwidth}
+\flushright
+\begin{listing}[1]{1}
+/* protocol for P2 */
+Q2 := true;
+TURN := 2
+wait until not Q1 or TURN = 1;
+Critical Section
+Q2 := false;
+\end{listing}
+\end{minipage}
+
+\subsection{Représentation du problème}
+\paragraph{Le sous-système Processus}
+\hfill\break
+
+\begin{minipage}{0.3\textwidth}
+\flushleft
+\begin{flalign*} 
+    & \vert{S}\vert = 5 & \\
+    & S = \{ 0, 1, 2, 3, 4 \} &\\
+    &S_0 = \{ 0 \} &\\
+     &AP = \{ start, start2, wait, critical, end \}  &\\
+    & \lambda = \left\{
+    \begin{array}{ll}
+        0 \rightarrow & \mbox{start} \\
+        1 \rightarrow & \mbox{start2} \\
+        2 \rightarrow & \mbox{wait} \\
+        3 \rightarrow & \mbox{critical} \\
+        4 \rightarrow & \mbox{end}
+    \end{array} 
+\right. &\\
+	& \rightarrow = \{ toStart, toStart2, toWait, toCritical, toEnd \}  & \\
+	& Process = < S , {S_0} , \rightarrow , \lambda , AP > &\\
+\end{flalign*}
+\end{minipage}
+\begin{minipage}{0.3\textwidth}
+\flushright
+\begin{dot2tex}[neato]
+		digraph system {
+_0[label="", shape=none ];
+_0->0;
+3 [label= "3 [critical]"];
+1 [label= "1 [start2]"];
+2 [label= "2 [wait]"];
+4 [label= "4 [end]"];
+0 [label= "0 [start]"];
+3->0 [label= "toStart"];
+1->2 [label= "toWait"];
+2->3 [label= "toCritical"];
+0->1 [label= "toStart2"];
+0->4 [label= "toEnd"];
+}
+
+\end{dot2tex} 
+\end{minipage}
+
+\paragraph{Le sous-système sharedT (TURN)}
+\hfill\break
+
+\begin{minipage}{0.5\textwidth}
+\flushleft
+\begin{flalign*} 
+    & \vert{S'}\vert = 2  & \\
+    & S' = \{ 0, 1 \}&\\
+    &S_0' = \{ 0, 1 \} &\\
+    &AP = \{ turn1, turn2 \} &\\
+    & \lambda = \left\{
+    \begin{array}{ll}
+        0 \rightarrow & \mbox{turn1} \\
+        1 \rightarrow & \mbox{turn2} \\
+    \end{array}
+	\right. &\\
+	& \rightarrow = \{ isTurn1, isTurn2, toTurn1, toTurn2 \}  & \\
+	& Shared = < S' , {S_0'} , \rightarrow , \lambda , AP > &\\
+\end{flalign*}
+\end{minipage}
+\begin{minipage}{0.3\textwidth}
+\flushright
+\begin{dot2tex}[dot]
+digraph system {
+_1[label="", shape=none ];
+_1->1;
+_0[label="", shape=none ];
+_0->0;
+1 [label= "1 [turn2]"];
+0 [label= "0 [turn1]"];
+1->1 [label= "[isTurn2, toTurn2]"];
+1->0 [label= "toTurn1"];
+0->1 [label= "toTurn2"];
+0->0 [label= "[isTurn1, toTurn1]"];
+}
+\end{dot2tex}
+\end{minipage}
+
+\paragraph{Le sous-système sharedQ (Q)}
+\hfill\break
+
+\begin{minipage}{0.5\textwidth}
+\flushleft
+\begin{flalign*} 
+    & \vert{S''}\vert = 2  & \\
+    & S'' = \{ 0, 1 \}&\\
+    &S_0'' = \{ 0, 1 \} &\\
+    &AP = \{ False, True \} &\\
+    & \lambda = \left\{
+    \begin{array}{ll}
+        0 \rightarrow & \mbox{False} \\
+        1 \rightarrow & \mbox{True} \\
+    \end{array}
+	\right. &\\
+	& \rightarrow = \{ isFalse, isTrue, toFalse, toTrue \}  & \\
+	& Shared = < S'' , {S_0''} , \rightarrow , \lambda , AP > &\\
+\end{flalign*}
+\end{minipage}
+\begin{minipage}{0.3\textwidth}
+\flushright
+\begin{dot2tex}[dot]
+digraph system {
+_0[label="", shape=none ];
+_0->0;
+0 [label= "0 [False]"];
+1 [label= "1 [True]"];
+1->1 [label= "[isTrue, toTrue]"];
+1->0 [label= "toFalse"];
+0->1 [label= "toTrue"];
+0->0 [label= "[isFalse, toFalse]"];
+}
+\end{dot2tex}
+\end{minipage}
+
+\subsection{Système}
+On définit ensuite P1 et P2, régis par le sous-système Process,
+Q1 et Q2 associés au sous-système SharedQ. Pour finir la variable TURN appartenant au sous-système sharedT \\
+Le système s'écrit donc $ systeme = <process P1,boolean Q1,process P2,boolean Q2,shared TURN> $ \\
+Note: les vecteurs de synchronisation sont disponibles dans le fichier \textbf{\textit {simple.mso}}.
+\subsection{Résultat}
+Les résultats sont très satisfaisant: L'exclusion mutuelle est respecté, il n'y a pas de deadlock et l'équité est aussi validé. Les trois conditions sont réunis pour qualifier cet algorithme de viable pour jouer le rôle d'un mutex.
+
+\section{Solution simple inversé}
+\subsection{Description générale}
+La solution modifié ne fonctionne pas (Elle ne respecte en aucun cas les 3 principes du mutex vu en introduction. Cette solution a pour but de mettre en evidence l'importance de l'ordre d'exécution des tests et des affectations. \\
+Nous inversons donc les deux premières affectations de la version proposé précédement.
+\smallbreak
+\begin{minipage}{0.5\textwidth}
+\flushleft
+\renewcommand{\verbatimtabsize}{3}
+\begin{listing}[1]{1}
+/* protocol for P1 */
+TURN := 1
+Q1 := true;
+wait until not Q2 or TURN = 2;
+Critical Section
+Q1 := false;
+\end{listing}
+\renewcommand{\verbatimtabsize}{3}
+\end{minipage}
+\begin{minipage}{0.5\textwidth}
+\flushright
+\begin{listing}[1]{1}
+/* protocol for P2 */
+TURN := 2
+Q2 := true;
+wait until not Q1 or TURN = 1;
+Critical Section
+Q2 := false;
+\end{listing}
+\end{minipage}
+
+\subsection{Représentation du problème}
+\paragraph{Le sous-système Processus}
+\hfill\break
+
+\begin{minipage}{0.3\textwidth}
+\flushleft
+\begin{flalign*} 
+    & \vert{S}\vert = 5 & \\
+    & S = \{ 0, 1, 2, 3, 4 \} &\\
+    &S_0 = \{ 0 \} &\\
+     &AP = \{ start, start2, wait, critical, end \}  &\\
+    & \lambda = \left\{
+    \begin{array}{ll}
+        0 \rightarrow & \mbox{start} \\
+        1 \rightarrow & \mbox{start2} \\
+        2 \rightarrow & \mbox{wait} \\
+        3 \rightarrow & \mbox{critical} \\
+        4 \rightarrow & \mbox{end}
+    \end{array} 
+\right. &\\
+	& \rightarrow = \{ toStart, toStart2, toWait, toCritical, toEnd \}  & \\
+	& Process = < S , {S_0} , \rightarrow , \lambda , AP > &\\
+\end{flalign*}
+\end{minipage}
+\begin{minipage}{0.3\textwidth}
+\flushright
+\begin{dot2tex}[neato]
+		digraph system {
+_0[label="", shape=none ];
+_0->0;
+3 [label= "3 [critical]"];
+1 [label= "1 [start2]"];
+2 [label= "2 [wait]"];
+4 [label= "4 [end]"];
+0 [label= "0 [start]"];
+3->0 [label= "toStart"];
+1->2 [label= "toWait"];
+2->3 [label= "toCritical"];
+0->1 [label= "toStart2"];
+0->4 [label= "toEnd"];
+}
+
+\end{dot2tex} 
+\end{minipage}
+
+\paragraph{Le sous-système sharedT (TURN)}
+\hfill\break
+
+\begin{minipage}{0.5\textwidth}
+\flushleft
+\begin{flalign*} 
+    & \vert{S'}\vert = 2  & \\
+    & S' = \{ 0, 1 \}&\\
+    &S_0' = \{ 0, 1 \} &\\
+    &AP = \{ turn1, turn2 \} &\\
+    & \lambda = \left\{
+    \begin{array}{ll}
+        0 \rightarrow & \mbox{turn1} \\
+        1 \rightarrow & \mbox{turn2} \\
+    \end{array}
+	\right. &\\
+	& \rightarrow = \{ isTurn1, isTurn2, toTurn1, toTurn2 \}  & \\
+	& Shared = < S' , {S_0'} , \rightarrow , \lambda , AP > &\\
+\end{flalign*}
+\end{minipage}
+\begin{minipage}{0.3\textwidth}
+\flushright
+\begin{dot2tex}[dot]
+digraph system {
+_1[label="", shape=none ];
+_1->1;
+_0[label="", shape=none ];
+_0->0;
+1 [label= "1 [turn2]"];
+0 [label= "0 [turn1]"];
+1->1 [label= "[isTurn2, toTurn2]"];
+1->0 [label= "toTurn1"];
+0->1 [label= "toTurn2"];
+0->0 [label= "[isTurn1, toTurn1]"];
+}
+\end{dot2tex}
+\end{minipage}
+
+\paragraph{Le sous-système sharedQ (Q)}
+\hfill\break
+
+\begin{minipage}{0.5\textwidth}
+\flushleft
+\begin{flalign*} 
+    & \vert{S''}\vert = 2  & \\
+    & S'' = \{ 0, 1 \}&\\
+    &S_0'' = \{ 0, 1 \} &\\
+    &AP = \{ False, True \} &\\
+    & \lambda = \left\{
+    \begin{array}{ll}
+        0 \rightarrow & \mbox{False} \\
+        1 \rightarrow & \mbox{True} \\
+    \end{array}
+	\right. &\\
+	& \rightarrow = \{ isFalse, isTrue, toFalse, toTrue \}  & \\
+	& Shared = < S'' , {S_0''} , \rightarrow , \lambda , AP > &\\
+\end{flalign*}
+\end{minipage}
+\begin{minipage}{0.3\textwidth}
+\flushright
+\begin{dot2tex}[dot]
+digraph system {
+_0[label="", shape=none ];
+_0->0;
+0 [label= "0 [False]"];
+1 [label= "1 [True]"];
+1->1 [label= "[isTrue, toTrue]"];
+1->0 [label= "toFalse"];
+0->1 [label= "toTrue"];
+0->0 [label= "[isFalse, toFalse]"];
+}
+\end{dot2tex}
+\end{minipage}
+
+\subsection{Système}
+On définit ensuite P1 et P2, régis par le sous-système Process,
+Q1 et Q2 associés au sous-système SharedQ. Pour finir la variable TURN appartenant au sous-système sharedT \\
+Le système s'écrit donc $ systeme = <process P1,boolean Q1,process P2,boolean Q2,shared TURN> $ \\
+Note: les vecteurs de synchronisation sont disponibles dans le fichier \textbf{\textit {simpleInverse.mso}}.
+\subsection{Résultat}
+
+La modification de notre solution en inversant l'ordre des deux première instructions a fortement impacté la qualité de notre algorithme. En effet celui-ci ne garanti plus les 3 règles du mutex validées précédemment.
+L'ensemble de l'inter-blocage est toujours vide sauf que le réduit nous montre que l'exclusion mutuelle n'est plus respectée comme le montre le graphe suivant.
+(Par soucis de place, voici 1 chemin parmis plusieurs qui mène a une execution de la section critique simultanément)
+\smallbreak
+\begin{dot2tex}[twopi]
+digraph system {
+_256[label="", shape=none ];
+_256->256;
+187 [label= "187 [CriticalMutual, P1.critical, P2.critical, Q1.True, Q2.True, TURN.turn1]"];
+27 [label= "27 [P1.critical, P2.start2, Q1.True, Q2.False, TURN.turn1]"];
+171 [label= "171 [P1.critical, P2.wait, Q1.True, Q2.True, TURN.turn1]"];
+256 [label= "256 [P1.start, P2.start, Q1.False, Q2.False, TURN.turn2]"];
+272 [label= "272 [P1.start, P2.start2, Q1.False, Q2.False, TURN.turn2]"];
+17 [label= "17 [P1.start2, P2.start2, Q1.False, Q2.False, TURN.turn1]"];
+26 [label= "26 [P1.wait, P2.start2, Q1.True, Q2.False, TURN.turn1]"];
+27->171 [label= "p2"];
+171->187 [label= "p2"];
+17->26 [label= "p1"];
+26->27 [label= "p1"];
+272->17 [label= "p1"];
+256->272 [label= "p2"];
+}
+\end{dot2tex}
+
+\chapter{Généralisation a N processus} 
+\section{Description générale}
+La dernière partie de notre analyse consiste a exploiter les résultats issu d'une généralisation de la solution simple pour 2 processus en l'étendant à N processus. On retrouve ainsi les variables TURN et Q sauf que ceux ci sont maintenant des tableaux ( TURN[1..N-1] et Q[1..N] respectivement initialisé a 1 et 0 ).\\
+Note : dans l'algorithme i = Numéro du processus.
+
+\begin{lstlisting}[mathescape=true, numbers=left,firstnumber=1]
+/* protocol for Pi */
+for j := 1 to n-1 do
+begin
+  Q[i] :=  j;
+  TURN[j] := i;
+  wait until( $\forall k \neq i$, Q[k] < j) or $TURN[j] \neq i$
+end;
+Critical Section;
+Q[i] := 0
+\end{lstlisting}
+
+
+\section{Représentation du problème}
+\paragraph{Le sous-système Processus}
+\hfill\break
+\flushleft
+\begin{flalign*} 
+    & \vert{S}\vert = 8 & \\
+    & S = \{ 0, 1, 2, 3, 4, 5, 6, 7 \} &\\
+    &S_0 = \{ 0 \} &\\
+     &AP = \{ start, for11, for12, loop2, for21, for22, critical, end\}  &\\
+    & \lambda = \left\{
+    \begin{array}{ll}
+        0 \rightarrow & \mbox{start} \\
+        1 \rightarrow & \mbox{for11} \\
+        2 \rightarrow & \mbox{for12} \\
+        3 \rightarrow & \mbox{loop2} \\
+        4 \rightarrow & \mbox{for21} \\
+        5 \rightarrow & \mbox{for22} \\
+        6 \rightarrow & \mbox{critical} \\
+        7 \rightarrow & \mbox{end} 
+    \end{array} 
+	\right. &\\
+	& \rightarrow = \{  toStart, toFor11, toFor12, toLoop2, toFor21, toFor22, toCritical, toEnd \}  & \\
+	& Process = < S , {S_0} , \rightarrow , \lambda , AP > &\\
+\end{flalign*}
+
+\begin{dot2tex}[neato]
+digraph system {
+_0[label="", shape=none ];
+_0->0;
+7 [label= "7 [end]"];
+3 [label= "3 [loop2]"];
+5 [label= "5 [for22]"];
+1 [label= "1 [for11]"];
+6 [label= "6 [critical]"];
+2 [label= "2 [for12]"];
+4 [label= "4 [for21]"];
+0 [label= "0 [start]"];
+3->4 [label= "toFor21"];
+5->6 [label= "toCritical"];
+1->2 [label= "toFor12"];
+2->3 [label= "toLoop2"];
+0->7 [label= "toEnd"];
+4->5 [label= "toFor22"];
+0->1 [label= "toFor11"];
+6->0 [label= "toStart"];
+}
+\end{dot2tex} 
+
+\paragraph{Le sous-système sharedQ (Q)}
+\hfill\break
+\begin{minipage}{0.3\textwidth}
+\flushleft
+\begin{flalign*} 
+    & \vert{S'}\vert = 4  & \\
+    & S' = \{ 0, 1, 2, 3 \}&\\
+    &S_0' = \{ 0 \} &\\
+    &AP = \{ val0, val1, val2, val3 \} &\\
+    & \lambda = \left\{
+    \begin{array}{ll}
+        0 \rightarrow & \mbox{val0} \\
+        1 \rightarrow & \mbox{val1} \\
+        2 \rightarrow & \mbox{val2} \\
+        3 \rightarrow & \mbox{val3} 
+    \end{array}
+	\right. &\\
+	& \rightarrow = \{  is0, is1, is2, is3, to0,to1, to2, to3 \}  & \\
+	& Shared = < S' , {S_0'} , \rightarrow , \lambda , AP > &\\
+\end{flalign*}
+\end{minipage}
+\begin{minipage}{0.3\textwidth}
+\flushright
+\begin{dot2tex}[dot]
+digraph system {
+_0[label="", shape=none ];
+_0->0;
+3 [label= "3 [val3]"];
+1 [label= "1 [val1]"];
+2 [label= "2 [val2]"];
+0 [label= "0 [val0]"];
+3->3 [label= "[is3, to3]"];
+3->1 [label= "to1"];
+1->3 [label= "to3"];
+1->1 [label= "[is1, to1]"];
+1->2 [label= "to2"];
+3->2 [label= "to2"];
+1->0 [label= "to0"];
+3->0 [label= "to0"];
+0->3 [label= "to3"];
+2->3 [label= "to3"];
+0->1 [label= "to1"];
+2->1 [label= "to1"];
+2->2 [label= "[is2, to2]"];
+2->0 [label= "to0"];
+0->2 [label= "to2"];
+0->0 [label= "[is0, to0]"];
+}
+\end{dot2tex}
+\end{minipage}
+
+\paragraph{Le sous-système sharedT (TURN)}
+\hfill\break
+\begin{minipage}{0.3\textwidth}
+\flushleft
+\begin{flalign*} 
+    & \vert{S'}\vert = 4  & \\
+    & S' = \{ 0, 1, 2, 3 \}&\\
+    &S_0' = \{ 0 \} &\\
+    &AP = \{ turn0, turn1, turn2, turn3 \} &\\
+    & \lambda = \left\{
+    \begin{array}{ll}
+        0 \rightarrow & \mbox{turn0} \\
+        1 \rightarrow & \mbox{turn1} \\
+        2 \rightarrow & \mbox{turn2} \\
+        3 \rightarrow & \mbox{turn3} 
+    \end{array}
+	\right. &\\
+	& \rightarrow = \{  is0, is1, is2, is3, to0,to1, to2, to3 \}  & \\
+	& Shared = < S' , {S_0'} , \rightarrow , \lambda , AP > &\\
+\end{flalign*}
+\end{minipage}
+\begin{minipage}{0.3\textwidth}
+\flushright
+\begin{dot2tex}[dot]
+digraph system {
+_1[label="", shape=none ];
+_1->1;
+3 [label= "3 [turn3]"];
+1 [label= "1 [turn1]"];
+2 [label= "2 [turn2]"];
+0 [label= "0 [turn0]"];
+3->3 [label= "[is3, to3]"];
+3->1 [label= "to1"];
+1->3 [label= "to3"];
+1->1 [label= "[is1, to1]"];
+1->2 [label= "to2"];
+3->2 [label= "to2"];
+1->0 [label= "to0"];
+3->0 [label= "to0"];
+0->3 [label= "to3"];
+2->3 [label= "to3"];
+0->1 [label= "to1"];
+2->1 [label= "to1"];
+2->2 [label= "[is2, to2]"];
+2->0 [label= "to0"];
+0->2 [label= "to2"];
+0->0 [label= "[is0, to0]"];
+}
+
+\end{dot2tex}
+\end{minipage}
+
+
+\section{Système}
+On définit ensuite P1, P2 et P3, régis par le sous-système Process.
+Nous rapellons que dans notre cas N=3 nous avons besoin de deux tableaux Q[3] et TURN[2]. Nous simulons donc ces tableaux par Q1,Q2,Q3 et TURN1, TURN2 respectivement de type sharedQ et sharedT. \\
+Ces tableaux sont accessible en lecture/écriture par tous les programmes. (je sais pas si on l'écrit ça comme c'est pas trop ça mais un peu...)
+Le système s'écrit donc $ <process P1,process P2, process P3, sharedQ Q1, sharedQ Q2, sharedQ Q3, sharedT t1, sharedT t2>  $ \\
+Note: les vecteurs de synchronisation sont disponibles dans le fichier \textbf{\textit {nProcesses.mso}}.
+
+\section{Résultat}
+Bien que le fichier au format DOT montrant le fonctionnement du système ( \textit{ nProcesses/systeme.dot} ) ne peux pas être lu ( le nombre d'état ne permet pas a un humain de déceler des dysfonctionnement) nous utilisons alors les formules CTL pour  vérifier le modèle.
+D'un point de vu inter blocage et exclusion mutuelle les résultat sont encourageant car les réduits nous montre que les processus ne s'inter-bloque jamais ni n'exécutent la section critique en même temps. Par ailleurs l'équité n'est pas respecté.
+\end{document}
+
+    

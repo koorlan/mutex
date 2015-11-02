@@ -24,7 +24,7 @@
 /* Transitions : is/to [1 or 2]                      */
 /*******************************************************/
 
-shared=[turn1,turn2] {
+sharedT=[turn1,turn2] {
   etat=2;
   init=0,1;
 
@@ -44,11 +44,11 @@ shared=[turn1,turn2] {
 /* Transitions: is/to [1 or 2]                        */
 /********************************************************/
 
-boolean=[TRUE,FALSE] {
+sharedQ=[True,False] {
   etat=2;
   init=0;
-  0=FALSE;
-  1=TRUE;
+  0=False;
+  1=True;
 
   0->0 [isFalse, toFalse];
   1->1 [isTrue, toTrue];
@@ -89,7 +89,7 @@ todot processSimple.dot process;;
 /**********************************************************/
 
 
-systeme = <process P1,boolean Q1,process P2,boolean Q2,shared TURN> {
+systeme = <process P1,sharedQ Q1,process P2,sharedQ Q2,sharedT TURN> {
 
   /*Exit state*/
   <toEnd,_,_,_,_> -> p1;
@@ -116,16 +116,6 @@ systeme = <process P1,boolean Q1,process P2,boolean Q2,shared TURN> {
   <_,_,toStart,toFalse,_> -> p2;
 };;
 
-systeme += EtatBloquant <- !EX(true) && !(P1.end && P2.end);;
-systeme += EtatCriticalMutual <- P1.critical && P2.critical;;
-
-todot simpleSysteme.dot systeme;;
-
-simpleReduit = systeme -> EtatBloquant;;
-todot simpleReduit.dot simpleReduit;;
-
-simpleCritical = systeme -> EtatCriticalMutual;;
-todot simpleCritical.dot simpleCritical;;
 
 
 
@@ -144,7 +134,8 @@ strong_equity = systeme -> state_strong_equity;;
 
 //Print Result
 todot simpleDot/process.dot process;;
-todot simpleDot/boolean.dot boolean;;
+todot simpleDot/sharedQ.dot sharedQ;;
+todot simpleDot/sharedT.dot sharedT;;
 
 todot simpleDot/system.dot systeme;;
 

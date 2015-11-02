@@ -31,15 +31,15 @@ process=[beginning, affectation ,condition, critical, end]
 	etat = 5;
 	init = 0;
 
-	0 = beginning; 
+	0 = beginning;
 	1 = affectation;
 	2 = condition;
 	3 = critical;
-	4 = end;					
-	
-	0->1 [toAff];		// change TURN value 
-	1->2 [toCond]; 		// test and wait 	
-	2->3 [toCrit];		// enter in critical code section 
+	4 = end;
+
+	0->1 [toAff];		// change TURN value
+	1->2 [toCond]; 		// test and wait
+	2->3 [toCrit];		// enter in critical code section
 	3->4 [toEnd];		// quit this code section
 	3->0 [toBegin];		// loop
 };;
@@ -56,14 +56,14 @@ process=[beginning, affectation ,condition, critical, end]
 shared = [one, two]
 {
 	etat = 2;
-	init = 0,1;					// 2 initial TURN values 
+	init = 0,1;					// 2 initial TURN values
 
 	0 = one;
 	1 = two;
-	
+
 	0->1 [aff2];  			// 2nd process changes turn
 	1->0 [aff1];	     	// 1st process changes turn
-	0->0 [testP1,critP2];	// 1st process tests or changes turn for nothing 
+	0->0 [testP1,critP2];	// 1st process tests or changes turn for nothing
 	1->1 [testP2,critP1];	// 2nd process tests or changes turn for nothing
 
 };;
@@ -77,7 +77,7 @@ systeme=<process P1, process P2, shared TURN>
 	<toCond,_,_> -> p1;
 	<_,toCond,_> -> p2;
 
-	<toCrit,_,critP1> -> p1;		
+	<toCrit,_,critP1> -> p1;
 	<_,toCrit,critP2> -> p2;
 
 	<toBegin,_,_> -> p1;
@@ -96,7 +96,7 @@ systeme=<process P1, process P2, shared TURN>
 
 
 //Define CTL to verifiy
- 
+
 systeme += state_deadlock <- !EX(true) && (P1.condition || P2.condition)					;; //Progress
 systeme += state_critical <- P1.critical && P2.critical 								;; //Mutual Exclusion
 systeme += state_deadlock <- !EX(true) && !(P1.end && P2.end)						;; //Progress
@@ -119,4 +119,3 @@ todot primitiveTDot/deadlock.dot deadlock ;;
 todot primitiveTDot/critical.dot critical ;;
 todot primitiveTDot/equity.dot equity ;;
 todot primitiveTDot/strong_equity.dot strong_equity ;;
-

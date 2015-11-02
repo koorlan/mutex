@@ -10,11 +10,11 @@
 */
 
 
-/*	
-	Initial system state 
+/*
+	Initial system state
  	- Q1 :: true / false
  	- Q2 :: true / false
- 	- P1 P2 :: start code excution   
+ 	- P1 P2 :: start code excution
 */
 
 
@@ -34,10 +34,10 @@ process=[beginning,affectation,test,critical,end]
 	1=affectation;
 	2=test;
 	3=critical;
-	4=end;			
+	4=end;
 
 	0->1[toAff];			// change Qi value
-	1->2[toTest]; 			// test 	
+	1->2[toTest]; 			// test
 	2->3[toCrit];			// enter in critical code section
 	3->4[toEnd];			// change Qi value again
 	4->0[toBegin];			// loop
@@ -54,18 +54,18 @@ process=[beginning,affectation,test,critical,end]
 shared=[istrue,isfalse]
 {
 	etat=2;
-	init= 0,1;	
+	init= 0,1;
 
 	0=istrue;
 	1=isfalse;
 
-	0->1[tofalse];  				
+	0->1[tofalse];
 	1->0[totrue];
 	0->0[ttot];
 	1->1[ftof];
 };;
 
-	
+
 systeme=<process P1, process P2, shared Q1, shared Q2>
 {
 	<toAff,_,totrue,_> -> p1;
@@ -74,13 +74,13 @@ systeme=<process P1, process P2, shared Q1, shared Q2>
 	<toTest,_,_,_> -> p1;
 	<_,toTest,_,_> -> p2;
 
-	<toCrit,_,_,ftof> -> p1;		
+	<toCrit,_,_,ftof> -> p1;
 	<_,toCrit,ftof,_> -> p2;
 
-	<toEnd,_,tofalse,_> -> p1;		
+	<toEnd,_,tofalse,_> -> p1;
 	<_,toEnd,_,tofalse> -> p2;
 
-	<toBegin,_,_,_> -> p1;		
+	<toBegin,_,_,_> -> p1;
 	<_,toBegin,_,_> -> p2;
 };;
 
@@ -100,12 +100,12 @@ equity = systeme -> state_equity;;
 strong_equity = systeme -> state_strong_equity;;
 
 //Print Result
-todot primitiveTDot/process.dot process;;
-todot primitiveTDot/shared.dot shared;;
+todot primitiveQDot/process.dot process;;
+todot primitiveQDot/shared.dot shared;;
 
-todot primitiveTDot/system.dot systeme;;
+todot primitiveQDot/system.dot systeme;;
 
-todot primitiveTDot/deadlock.dot deadlock ;;
-todot primitiveTDot/critical.dot critical ;;
-todot primitiveTDot/equity.dot equity ;;
-todot primitiveTDot/strong_equity.dot strong_equity ;;
+todot primitiveQDot/deadlock.dot deadlock ;;
+todot primitiveQDot/critical.dot critical ;;
+todot primitiveQDot/equity.dot equity ;;
+todot primitiveQDot/strong_equity.dot strong_equity ;;
