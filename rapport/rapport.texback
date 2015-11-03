@@ -292,7 +292,7 @@ $$ (1) P1.critical \land P2.critical$$
 De même, une situation d'interblocage sera formulée de la manière suivante : \\
 $$ (2) !EX(true) \land ( P1.test \lor P2.test )$$
 
-Tout comme pour l'algorithme précédent, les accès concurrents à la section critique sont gérés convenablement par cet algorithme.
+Tout comme pour l'algorithme précédent, les accès concurrents concurrents à la section critique sont gérés convenablement par cet algorithme.
 Cela se confirme par le fait que le réduit vérifiant la formule (1) est vide.
 \\
 Une fois encore, le réduit vérifiant la formule (2) est non vide.
@@ -302,7 +302,7 @@ En effet, on peut constater que dans ce cas, $Q1 = Q2 = true$.
 \chapter{Mutex pour 2 processus} 
 \section{Solution simple}
 \subsection{Description générale}
-L'algorithme présenté à la figure 1 est une solution pour que deux processus puissent partager une section critique commune. Cette solution a besoin d'une variable partagée TURN modifiée par les deux processus ainsi que Q1 et Q2 appartenant respectivement au processus 1 et 2. Le processus 1 accède en lecture à la variable Q2 et inversement pour le second processus. Par ailleurs, seulement le premier processus pourra modifier Q1, et inversement pour le deuxième processus. 
+L'algorithme présenté à la figure 1 est une solution pour que deux processus puissent partager une section critique commune. Cette solution a besoin d'une variable partagée TURN modifiées par les deux processus ainsi que Q1 et Q2 appartenant respectivement au processus 1 et 2. Le processus 1 accède en lecture à la variable Q2 et inversement pour le second processus. Par ailleurs, seulement le premier processus pourra modifier Q1 ( et inversement pour le deuxième processus. 
 
 \begin{minipage}{0.5\textwidth}
 \flushleft
@@ -454,14 +454,12 @@ Q1 et Q2 associés au sous-système SharedQ. Pour finir la variable TURN apparte
 Le système s'écrit donc $ systeme = <process P1,boolean Q1,process P2,boolean Q2,shared TURN> $ \\
 Note: les vecteurs de synchronisation sont disponibles dans le fichier \textbf{\textit {simple.mso}}.
 \subsection{Résultat}
-Les résultats sont très satisfaisants : L'exclusion mutuelle est respectée, il n'y a pas de deadlock et l'équité est aussi validée. Les trois conditions sont réunies pour qualifier 
-cet algorithme de viable pour jouer le rôle d'un mutex.
+Les résultats sont très satisfaisant: L'exclusion mutuelle est respecté, il n'y a pas de deadlock et l'équité est aussi validé. Les trois conditions sont réunis pour qualifier cet algorithme de viable pour jouer le rôle d'un mutex.
 
 \section{Solution simple inversé}
 \subsection{Description générale}
-La solution modifiée ne fonctionne pas (Elle ne respecte en aucun cas les 3 principes du mutex vus en introduction. Cette solution a pour but de mettre en evidence l'importance de l'ordre d'exécution des tests et des 
-affectations. \\
-Nous inversons donc les deux premières affectations de la version proposée précédemment.
+La solution modifié ne fonctionne pas (Elle ne respecte en aucun cas les 3 principes du mutex vu en introduction. Cette solution a pour but de mettre en evidence l'importance de l'ordre d'exécution des tests et des affectations. \\
+Nous inversons donc les deux premières affectations de la version proposé précédement.
 \smallbreak
 \begin{minipage}{0.5\textwidth}
 \flushleft
@@ -614,11 +612,9 @@ Le système s'écrit donc $ systeme = <process P1,boolean Q1,process P2,boolean 
 Note: les vecteurs de synchronisation sont disponibles dans le fichier \textbf{\textit {simpleInverse.mso}}.
 \subsection{Résultat}
 
-La modification de notre solution en inversant l'ordre des deux premières instructions
-a fortement impacté la qualité de notre algorithme. En effet celui-ci ne garantit plus les 3 règles du mutex validées précédemment.
-L'ensemble de l'inter-blocage est toujours vide sauf que le réduit nous montre que l'exclusion mutuelle n'est plus respectée 
-comme le montre le graphe suivant.
-Par soucis de place, voici 1 chemin parmis plusieurs qui mène a une execution de la section critique.
+La modification de notre solution en inversant l'ordre des deux première instructions a fortement impacté la qualité de notre algorithme. En effet celui-ci ne garanti plus les 3 règles du mutex validées précédemment.
+L'ensemble de l'inter-blocage est toujours vide sauf que le réduit nous montre que l'exclusion mutuelle n'est plus respectée comme le montre le graphe suivant.
+(Par soucis de place, voici 1 chemin parmis plusieurs qui mène a une execution de la section critique simultanément)
 \smallbreak
 \begin{dot2tex}[twopi]
 digraph system {
@@ -642,7 +638,7 @@ _256->256;
 
 \chapter{Généralisation a N processus} 
 \section{Description générale}
-La dernière partie de notre analyse consiste a exploiter les résultats issus d'une généralisation de la solution simple pour 2 processus en l'étendant à N processus. On retrouve ainsi les variables TURN et Q sauf que celles-ci sont maintenant des tableaux ( TURN[1..N-1] et Q[1..N] respectivement initialisés a 1 et 0 ).\\
+La dernière partie de notre analyse consiste a exploiter les résultats issu d'une généralisation de la solution simple pour 2 processus en l'étendant à N processus. On retrouve ainsi les variables TURN et Q sauf que ceux ci sont maintenant des tableaux ( TURN[1..N-1] et Q[1..N] respectivement initialisé a 1 et 0 ).\\
 Note : dans l'algorithme i = Numéro du processus.
 
 \begin{lstlisting}[mathescape=true, numbers=left,firstnumber=1]
@@ -813,13 +809,13 @@ _1->1;
 \section{Système}
 On définit ensuite P1, P2 et P3, régis par le sous-système Process.
 Nous rapellons que dans notre cas N=3 nous avons besoin de deux tableaux Q[3] et TURN[2]. Nous simulons donc ces tableaux par Q1,Q2,Q3 et TURN1, TURN2 respectivement de type sharedQ et sharedT. \\
-Ces tableaux sont accessibles en lecture/écriture par tous les programmes.
+Ces tableaux sont accessible en lecture/écriture par tous les programmes. (je sais pas si on l'écrit ça comme c'est pas trop ça mais un peu...)
 Le système s'écrit donc $ <process P1,process P2, process P3, sharedQ Q1, sharedQ Q2, sharedQ Q3, sharedT t1, sharedT t2>  $ \\
 Note: les vecteurs de synchronisation sont disponibles dans le fichier \textbf{\textit {nProcesses.mso}}.
 
 \section{Résultat}
-Bien que le fichier au format DOT montrant le fonctionnement du système ( \textit{ nProcesses/systeme.dot} ) ne puisse pas être lu (le nombre d'états ne permet pas a un humain de déceler des dysfonctionnements) nous utilisons alors les formules CTL pour vérifier le modèle.
-D'un point de vue inter blocage et exclusion mutuelle les résultats sont encourageants car les réduits nous montrent que les processus ne s'inter-bloquent jamais ni n'exécutent la section critique en même temps. Par ailleurs l'équité n'est pas respectée.
+Bien que le fichier au format DOT montrant le fonctionnement du système ( \textit{ nProcesses/systeme.dot} ) ne peux pas être lu ( le nombre d'état ne permet pas a un humain de déceler des dysfonctionnement) nous utilisons alors les formules CTL pour  vérifier le modèle.
+D'un point de vu inter blocage et exclusion mutuelle les résultat sont encourageant car les réduits nous montre que les processus ne s'inter-bloque jamais ni n'exécutent la section critique en même temps. Par ailleurs l'équité n'est pas respecté.
 \end{document}
 
     
